@@ -48,12 +48,13 @@ class ConverterEngine:
             target_path = destination_dir / POLYFILL_FILENAME
             self.log(f"Downloading polyfill library...")
             
+            # Timeout set to 10 seconds
             with urllib.request.urlopen(POLYFILL_URL, context=ctx, timeout=10) as response:
                 with open(target_path, 'wb') as f:
                     f.write(response.read())
             return POLYFILL_FILENAME
         except Exception as e:
-            self.log(f"[Warning] Polyfill download failed: {e}")
+            self.log(f"[Error] Polyfill download failed: {e}")
             return None
 
     def generate_gecko_id(self, extension_name: str):
@@ -132,7 +133,17 @@ class ConverterEngine:
                 manifest_path = manifests[0]
                 root_dir = manifest_path.parent
                 
+                # --- [FIXED] Fail-safe Logic Start ---
                 polyfill_file = self.download_polyfill(root_dir)
+                
+                if polyfill_file is None:
+                    # Download failed! Stop everything.
+                    error_msg = "인터넷 연결을 확인해주세요.\nPolyfill 파일을 다운로드할 수 없어 변환을 중단합니다."
+                    self.log(f"❌ CRITICAL: {error_msg.replace(chr(10), ' ')}")
+                    messagebox.showerror("Connection Error", error_msg)
+                    return # Stop execution here
+                # --- [FIXED] Fail-safe Logic End ---
+
                 self.patch_manifest(manifest_path, polyfill_file)
 
                 default_name = f"{input_path.stem}_firefox.xpi"
