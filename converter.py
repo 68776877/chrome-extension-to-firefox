@@ -13,6 +13,7 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 import ctypes
 import customtkinter as ctk
+import uuid
 
 # ---------------------------------------------------------
 # Configuration
@@ -58,8 +59,9 @@ class ConverterEngine:
             return None
 
     def generate_gecko_id(self, extension_name: str):
-        clean_name = re.sub(r'[^a-zA-Z0-9]', '', extension_name).lower()
-        return f"{clean_name or 'extension'}@ported.local"
+        # Switched from random generation to name-based deterministic UUIDs
+        unique_id = uuid.uuid5(uuid.NAMESPACE_DNS, extension_name)
+        return f"{{{str(unique_id)}}}"
 
     def patch_manifest(self, manifest_path: Path, polyfill_file: str):
         self.log(f"Processing manifest: {manifest_path.name}")
@@ -356,3 +358,4 @@ Do you understand and agree to these terms?"""
 if __name__ == "__main__":
     app = ModernApp()
     app.mainloop()
+
