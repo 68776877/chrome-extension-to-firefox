@@ -13,7 +13,7 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 import ctypes
 import customtkinter as ctk
-import uuid
+import uuid  # [v1.1.0] Added
 
 # ---------------------------------------------------------
 # Configuration
@@ -59,7 +59,7 @@ class ConverterEngine:
             return None
 
     def generate_gecko_id(self, extension_name: str):
-        # Switched from random generation to name-based deterministic UUIDs
+        # [v1.1.0] Name-based deterministic UUID generation (supports updates)
         unique_id = uuid.uuid5(uuid.NAMESPACE_DNS, extension_name)
         return f"{{{str(unique_id)}}}"
 
@@ -92,6 +92,34 @@ class ConverterEngine:
                 scripts.append(worker_script)
             background["scripts"] = scripts
             data["background"] = background
+
+        ### [START CHANGE]
+        # [v1.2.0] Convert Chrome Side Panel to Firefox Sidebar Action
+        if "side_panel" in data:
+            self.log("Converting Chrome Side Panel to Firefox Sidebar...")
+            side_panel_data = data.pop("side_panel")
+            default_path = side_panel_data.get("default_path", "")
+            
+            if default_path:
+                sidebar_action = {
+                    "default_panel": default_path,
+                    "default_title": app_name
+                }
+                # Inherit icon if available
+                if "icons" in data:
+                    sidebar_action["default_icon"] = data["icons"]
+                
+                data["sidebar_action"] = sidebar_action
+            
+            # Remove 'side_panel' permission (unsupported in Firefox)
+            if "permissions" in data and "side_panel" in data["permissions"]:
+                data["permissions"].remove("side_panel")
+
+        # [v1.2.0] Fix Incognito Compatibility (split -> spanning)
+        if data.get("incognito") == "split":
+            self.log("⚠️ Fixed: 'incognito: split' -> 'spanning'")
+            data["incognito"] = "spanning"
+        ### [END CHANGE]
 
         # 3. Inject Polyfill
         if polyfill_file:
@@ -358,4 +386,3 @@ Do you understand and agree to these terms?"""
 if __name__ == "__main__":
     app = ModernApp()
     app.mainloop()
-
